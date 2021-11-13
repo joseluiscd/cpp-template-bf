@@ -1,10 +1,9 @@
 #include <cstddef>
 #include <cstdio>
-#include <type_traits>
 #include <string>
+#include <type_traits>
 
 using std::size_t;
-
 
 // List and utils
 // --------------
@@ -56,7 +55,6 @@ struct head<list<H, T...>> {
     static constexpr const char value = H;
 };
 
-
 template <>
 struct head<list<>> {
     static constexpr const char value = 0;
@@ -97,7 +95,8 @@ struct top<type_list<T, List...>> {
 };
 
 template <typename T>
-constexpr T cmp(T a, T b) {
+constexpr T cmp(T a, T b)
+{
     if (a > b) {
         return -1;
     } else if (a < b) {
@@ -106,17 +105,6 @@ constexpr T cmp(T a, T b) {
         return 0;
     }
 }
-
-struct machine {
-    using output = list<>;
-    using input = list<>;
-
-    using tape_left = list<>;
-    static constexpr char tape_val = 0; 
-    using tape_right = list<>;
-
-    using stack = type_list<>;
-};
 
 template <typename Program, typename Machine>
 struct eval_instr;
@@ -178,12 +166,11 @@ struct eval_instr<list<'.', I...>, Machine> {
 template <char... I, typename Machine>
 struct eval_instr<list<',', I...>, Machine> {
     struct eval : Machine {
-        static constexpr const char tape_val = head<typename Machine::input>::value; 
+        static constexpr const char tape_val = head<typename Machine::input>::value;
     };
 
     using type = typename eval_instr<list<I...>, eval>::type;
 };
-
 
 template <char... I, typename Machine>
 struct eval_instr<list<'[', I...>, Machine> {
@@ -205,25 +192,49 @@ struct eval_instr<list<']', I...>, Machine> {
     using type = typename eval_instr<new_code, eval>::type;
 };
 
+
+template <typename List>
+struct make_str; 
+
+template <char... C>
+struct make_str<list<C...>> {
+    static constexpr const char value[] = { C..., 0 };
+};
+
 template <typename T>
 void print()
 {
-    std::printf("%s\n", __PRETTY_FUNCTION__);
+    std::printf("%s\n", make_str<T>::value);
 }
+
+template <typename Char, Char... C>
+constexpr auto operator"" _list()
+{
+    return list<C...>();
+}
+
+template <typename Input>
+struct machine {
+    using output = list<>;
+    using input = Input;
+
+    using tape_left = list<>;
+    static constexpr char tape_val = 0;
+    using tape_right = list<>;
+
+    using stack = type_list<>;
+};
+
+template <typename Program, typename Input = list<>>
+using eval_machine = typename eval_instr<Program, machine<Input>>::type::output;
+
+// Hello world
+using program = decltype(">++++++++[<+++++++++>-]<.>>++++++++++[<++++++++++>-]<+.>>+++++++++[<++++++++++++>-]<.>>+++++++++[<++++++++++++>-]<.>>++++++++++[<+++++++++++>-]<+.>>++++[<++++++++>-]<.>>+++++++++++[<++++++++>-]<-.>>++++++++++[<+++++++++++>-]<+.>>++++++++++[<++++++++++++>-]<------.>>+++++++++[<++++++++++++>-]<.>>++++++++++[<++++++++++>-]<.>>++++++[<++++++>-]<---."_list);
+using result = eval_machine<program>; 
 
 int main()
 {
-    using program = list<'+', '+','+','+', '[', '.', '-', ']'>;
-    using the_machine = eval_instr<program, machine>::type;
-    print<
-        the_machine::stack
-    >();
-
-    std::printf("%d", the_machine::tape_val);
-
-    print<
-        the_machine::output
-    >();
+    print<result>();
 
     return 0;
 }
